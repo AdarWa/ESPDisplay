@@ -14,6 +14,7 @@
 //Components
 #define AC_CONTROL 1
 #define CLIMATE_CONTROL 1
+#define FAN 1
 
 //MQTT
 #define MQTT_SERVER "192.168.1.32"
