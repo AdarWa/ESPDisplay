@@ -11,7 +11,7 @@ This repository contains the source code and configuration files for an ESP32 de
 
 1. Clone this repository:
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/AdarWa/DisplayRemote
     ```
 2. Open the project in PlatformIO.
 
