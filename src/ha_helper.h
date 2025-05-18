@@ -17,9 +17,13 @@ extern HASensorNumber ac_control_fan;
 extern HASwitch fan_reverse;
 extern HASwitch fan_light;
 extern HASensorNumber fan_speed;
+extern HASensorNumber fan_timer;
 
 
 void ha_begin();
 void ha_loop();
+unsigned long getZeroEpochTime();
+unsigned long getCurrentEpochTime();
+unsigned long getRealEpochTime();
 
 #endif

@@ -11,6 +11,9 @@
 
 #define FAN_LEVELS 6
 
+// Time Synchronization
+#define EPOCH_ZERO 1735686000 // in seconds 1-1-2025 01:00:00 GMT+2
+
 //Components
 #define AC_CONTROL 1
 #define CLIMATE_CONTROL 1
@@ -23,6 +26,10 @@
 #define MQTT_DEVICE_NAME "Display Remote Control"
 #define MQTT_MANUFACTURER "Wasserman Inc."
 #define MQTT_MODEL "ESP32"
+
+//Sleep
+#define SLEEP_THRESHOLD 30000  // 30 seconds
+#define ENABLE_SLEEP 1
 
 //Colors
 #define COLORS_GRAY 0xcccccc

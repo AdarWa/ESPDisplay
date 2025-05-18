@@ -3,21 +3,57 @@
 #include "config.h"
 #include "ha_helper.h"
 #include <lvgl.h>
+#include "spiffs_handler.h"
+
 
 static int16_t current_temp = DEFAULT_TEMP;
 static lv_obj_t *temp_label;
 static lv_obj_t *btn_power;
 static bool ac_power = true;
 
+static bool first_init = true;
+
 static int16_t current_fan_level = 3;
 static lv_obj_t *fan_dots[FAN_LEVELS];
 
+static void save_state(){
+    StaticJsonDocument<256> state;
+    state["ac_power"] = ac_power;
+    state["current_temp"] = current_temp;
+    state["current_fan_level"] = current_fan_level;
+    spiffs_save_json("/ac_control.json", state);
+}
 
-static void update_mqtt(){
+static void update_mqtt(bool save = true){
+    if(save){
+        save_state();
+    }
     ac_control_power.setState(ac_power);
     ac_control_temp.setValue((float)current_temp);
     ac_control_fan.setValue((float)current_fan_level+1);
 }
+
+static void fetch_state(){
+    if(!first_init){
+        return;
+    }
+    first_init = false;
+    if(!spiffs_file_exists("/ac_control.json")){
+        Serial.println("ac_control state file not found, creating default state");
+        save_state();
+    }
+    Serial.println("Loading ac_control state from file");
+    StaticJsonDocument<256> state;
+    if(spiffs_load_json("/ac_control.json", state)){
+        ac_power = state["ac_power"];
+        current_temp = state["current_temp"];
+        current_fan_level = state["current_fan_level"];
+    }else{
+        Serial.println("Failed to load ac_control state from file");
+    }
+    update_mqtt(false);
+}
+
 
 static void update_fan_bar_display() {
     for (int i = 0; i < FAN_LEVELS; i++) {
@@ -138,6 +174,7 @@ static void btn_power_toggle_cb(lv_event_t *e) {
 }
 
 lv_obj_t* create_ac_control_screen() {
+    fetch_state();
     lv_obj_t *scr = lv_obj_create(NULL);
 
     lv_obj_set_style_bg_color(scr, lv_color_hex(0xf0f0f0), 0);

@@ -12,6 +12,8 @@
 #include "ha_helper.h"
 #include "home.h"
 #include "utils.h"
+#include "config.h"
+#include "spiffs_handler.h"
 
 
 // Touchscreen pins
@@ -24,7 +26,6 @@
 SPIClass touchscreenSPI = SPIClass(VSPI);
 XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 
-#define SLEEP_THRESHOLD 30000  // 30 seconds
 #define TOUCH_WAKEUP_PIN 36    // T_IRQ pin (used as wake-up source)
 
 #define SCREEN_WIDTH 240
@@ -43,6 +44,19 @@ void log_print(lv_log_level_t level, const char * buf) {
   Serial.flush();
 }
 
+unsigned long last_touch_time = 0;
+
+void go_to_sleep() {
+  #if ENABLE_SLEEP
+  Serial.println("Going to sleep...");
+  Serial.flush();
+  delay(100); // Let serial print
+  // Configure external wakeup on falling edge of IO36
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_36, 0);
+  esp_deep_sleep_start();  // Enter deep sleep
+  #endif
+}
+
 // Get the Touchscreen data
 void touchscreen_read(lv_indev_t * indev, lv_indev_data_t * data) {
   // Checks if Touchscreen was touched, and prints X, Y and Pressure (Z)
@@ -59,6 +73,8 @@ void touchscreen_read(lv_indev_t * indev, lv_indev_data_t * data) {
     // Set the coordinates
     data->point.x = x;
     data->point.y = y;
+
+    last_touch_time = millis();
 
     // Print Touchscreen info about X, Y and Pressure (Z) on the Serial Monitor
     /* Serial.print("X = ");
@@ -82,6 +98,9 @@ void setup() {
   String LVGL_Arduino = String("LVGL Library Version: ") + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
   Serial.begin(115200);
   Serial.println(LVGL_Arduino);
+
+  pinMode(TOUCH_WAKEUP_PIN, INPUT);
+  spiffs_begin();
   
   // Start LVGL
   lv_init();
@@ -112,6 +131,7 @@ void setup() {
     lv_scr_load(create_home_screen());
     show_message_box("Connecting to WiFi...", "...");
     init_millis = millis();
+    last_touch_time = millis();
 }
 
 unsigned long lastLVGLTick = 0;
@@ -124,7 +144,6 @@ void loop() {
 
 
     delay(1);
-    if(init_millis > 100){
       if(!init_flag){
         ha_begin();
       }
@@ -133,8 +152,11 @@ void loop() {
         close_message_box();
         init_flag=true;    
       }
-    }
     unsigned long now = millis();
     lv_tick_inc(now - lastLVGLTick);
     lastLVGLTick = now;
+
+    if ((now - last_touch_time) > SLEEP_THRESHOLD) {
+      go_to_sleep();
+    }
 }

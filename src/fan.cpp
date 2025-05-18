@@ -3,7 +3,9 @@
 #include "config.h"
 #include "ha_helper.h"
 #include <math.h>
+#include "spiffs_handler.h"
 
+#define MAX_TIMER 60*60*23 + 55*60
 
 static int16_t current_level = -1;
 static lv_obj_t *level_label;
@@ -16,15 +18,53 @@ static lv_obj_t *fan_btns[6];
 
 static lv_obj_t *hour_roller;
 static lv_obj_t *min_roller;
+static lv_obj_t *time_left_label;
 
-static int16_t timer_min = 0;
+static unsigned long timer_epoch = 0;
+
+static bool first_init = true;
 
 static lv_obj_t* create_advanced_screen();
 
-static void update_mqtt(){
+static void save_state(){
+    StaticJsonDocument<256> fan_state;
+    fan_state["current_level"] = current_level;
+    fan_state["light_power"] = light_power;
+    fan_state["fan_dir"] = fan_dir;
+    fan_state["timer_epoch"] = timer_epoch;
+    spiffs_save_json("/fan.json", fan_state);
+}
+
+static void update_mqtt(bool save = true){
+    if(save){
+        save_state();
+    }
     fan_light.setState(light_power);
     fan_reverse.setState(fan_dir);
     fan_speed.setValue((float)current_level+1);
+    fan_timer.setValue((float)timer_epoch);
+}
+
+static void fetch_state(){
+    if(!first_init){
+        return;
+    }
+    first_init = false;
+    if(!spiffs_file_exists("/fan.json")){
+        Serial.println("Fan state file not found, creating default state");
+        save_state();
+    }
+    Serial.println("Loading fan state from file");
+    StaticJsonDocument<256> fan_state;
+    if(spiffs_load_json("/fan.json", fan_state)){
+        current_level = fan_state["current_level"];
+        light_power = fan_state["light_power"];
+        fan_dir = fan_state["fan_dir"];
+        timer_epoch = fan_state["timer_epoch"];
+    }else{
+        Serial.println("Failed to load fan state from file");
+    }
+    update_mqtt(false);
 }
 
 static void update_selected_level(){
@@ -44,7 +84,9 @@ static void time_selector_cb(lv_event_t* e) {
     uint16_t minute = lv_roller_get_selected(min_roller)*5;
 
     LV_LOG_USER("Selected time: %02d:%02d", hour, minute);
-    timer_min = hour * 60 + minute;
+    int16_t timer_min = hour * 60 + minute;
+    timer_epoch = getCurrentEpochTime() + timer_min * 60;
+    update_mqtt();
 }
 
 static void create_time_selector(lv_obj_t* parent) {
@@ -71,11 +113,16 @@ static void create_time_selector(lv_obj_t* parent) {
     lv_roller_set_visible_row_count(min_roller, 3);
     lv_obj_set_width(min_roller, 60);
     // Set default selected option
+    int16_t timer_min = timer_epoch - getCurrentEpochTime();
+    if(timer_min < 0){
+        timer_min = 0;
+    }
+    timer_min = timer_min / 60;
     lv_roller_set_selected(hour_roller, timer_min/60, LV_ANIM_OFF);
     lv_roller_set_selected(min_roller, (timer_min%60)/5, LV_ANIM_OFF);
 
 
-    // Add event on minutes roller (or both if needed)
+    // Add event on minutes roller
     lv_obj_add_event_cb(min_roller, time_selector_cb, LV_EVENT_VALUE_CHANGED, nullptr);
     lv_obj_add_event_cb(hour_roller, time_selector_cb, LV_EVENT_VALUE_CHANGED, nullptr);
 
@@ -127,12 +174,13 @@ static lv_obj_t* create_advanced_screen(){
 
     lv_obj_t *set_timer_btn = lv_btn_create(scr);
     lv_obj_align(set_timer_btn, LV_ALIGN_TOP_LEFT, 10, 60);
-    lv_obj_set_size(set_timer_btn, timer_min > 0 ? 200 : 100, 40);
+    lv_obj_set_size(set_timer_btn, (timer_epoch - getCurrentEpochTime()) < MAX_TIMER ? 200 : 100, 40);
     lv_obj_set_style_bg_color(set_timer_btn, lv_color_hex(COLORS_LIGHT_BLUE), LV_PART_MAIN | LV_STATE_DEFAULT);
 
     lv_obj_t *set_timer_label = lv_label_create(set_timer_btn);
-    lv_label_set_text(set_timer_label, timer_min > 0 ? "Stop and set timer" : "Set Timer");
+    lv_label_set_text(set_timer_label, (timer_epoch - getCurrentEpochTime()) < MAX_TIMER ? "Stop and set timer" : "Set Timer");
     lv_obj_center(set_timer_label);
+
 
     lv_obj_add_event_cb(set_timer_btn, [](lv_event_t *e) {
         lv_scr_load_anim(create_set_timer_screen(), LV_SCR_LOAD_ANIM_MOVE_LEFT, TRANSITION_TIME, 0, false);
@@ -167,18 +215,6 @@ static void btn_power_toggle_cb(lv_event_t *e) {
     update_power_display();
 }
 
-static void update_reverse_display() {
-    lv_color_t color = fan_dir ? lv_color_hex(COLORS_GREEN)
-                                : lv_color_hex(COLORS_GRAY);
-    lv_obj_set_style_bg_color(rev_btn
-    , color, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(rev_btn
-    , LV_OPA_COVER, LV_PART_MAIN);
-
-    update_mqtt();
-}
-
-
 static void btn_reverse_toggle_cb(lv_event_t *e) {
     fan_dir = !fan_dir;
     update_mqtt();
@@ -187,6 +223,7 @@ static void btn_reverse_toggle_cb(lv_event_t *e) {
 
 
 lv_obj_t* create_fan_control_screen() {
+    fetch_state();
     lv_obj_t *scr = lv_obj_create(NULL);
 
     lv_obj_set_style_bg_color(scr, lv_color_hex(0xf0f0f0), 0);
@@ -287,16 +324,16 @@ lv_obj_t* create_fan_control_screen() {
     // Reverse Direction Button (top)
     rev_btn = lv_btn_create(scr);
     lv_obj_set_size(rev_btn, 50, 50);
-    lv_obj_align(rev_btn, LV_ALIGN_BOTTOM_MID, 0, -10);
+    lv_obj_align(rev_btn, (timer_epoch - getCurrentEpochTime() < MAX_TIMER) ? LV_ALIGN_BOTTOM_LEFT :LV_ALIGN_BOTTOM_MID, (timer_epoch - getCurrentEpochTime() < MAX_TIMER) ? 15 : 0, -10);
     lv_obj_add_event_cb(rev_btn, btn_reverse_toggle_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_style_bg_color(rev_btn, lv_color_hex(COLORS_GRAY), LV_PART_MAIN | LV_STATE_DEFAULT);
 
     lv_obj_t *rev_label = lv_label_create(rev_btn);
     lv_label_set_text(rev_label, LV_SYMBOL_REFRESH);  // symbol for reverse
     lv_obj_center(rev_label);
-    update_reverse_display();
 
 
-    // Light Toggle Button (bottom)
+    // Light Toggle Button
     light_btn = lv_btn_create(scr);
     lv_obj_set_size(light_btn, 50, 50);
     lv_obj_align(light_btn, LV_ALIGN_TOP_MID, 0, 10);
@@ -306,6 +343,32 @@ lv_obj_t* create_fan_control_screen() {
     lv_label_set_text(light_label, LV_SYMBOL_POWER);
     lv_obj_center(light_label);
     update_power_display();
+
+    time_left_label = lv_label_create(scr);
+    lv_obj_set_style_text_font(time_left_label, &lv_font_montserrat_24, 0);
+    if(timer_epoch - getCurrentEpochTime() < MAX_TIMER){
+        lv_obj_clear_flag(time_left_label, LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text_fmt(time_left_label, "%02d:%02d:%02d", 
+            (timer_epoch - getCurrentEpochTime()) / 3600, 
+            ((timer_epoch - getCurrentEpochTime()) % 3600) / 60, 
+            (timer_epoch - getCurrentEpochTime()) % 60);
+    }else {
+        lv_obj_add_flag(time_left_label, LV_OBJ_FLAG_HIDDEN);
+    }
+    
+    lv_obj_align(time_left_label, LV_ALIGN_BOTTOM_MID, 0, -25);
+
+    lv_timer_t *timer = lv_timer_create([](lv_timer_t *t) {
+        if(timer_epoch - getCurrentEpochTime() < MAX_TIMER){
+            lv_label_set_text_fmt(time_left_label, "%02d:%02d:%02d", 
+                (timer_epoch - getCurrentEpochTime()) / 3600, 
+                ((timer_epoch - getCurrentEpochTime()) % 3600) / 60, 
+                (timer_epoch - getCurrentEpochTime()) % 60);
+        }else {
+            lv_label_set_text(time_left_label, "Timer Finished");
+            lv_timer_del(t);
+        }
+    }, 1000, NULL);
     
 
     return scr;
