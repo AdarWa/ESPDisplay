@@ -6,6 +6,7 @@
 #include "spiffs_handler.h"
 
 #define MAX_TIMER 60*60*23 + 55*60
+#define is_timer_running() (timer_epoch - getCurrentEpochTime() < MAX_TIMER)
 
 static int16_t current_level = -1;
 static lv_obj_t *level_label;
@@ -14,7 +15,7 @@ static lv_obj_t *rev_btn;
 static bool light_power = false;
 static bool fan_dir = false;
 
-static lv_obj_t *fan_btns[6];
+static lv_obj_t *fan_btns[7];
 
 static lv_obj_t *hour_roller;
 static lv_obj_t *min_roller;
@@ -68,14 +69,13 @@ static void fetch_state(){
 }
 
 static void update_selected_level(){
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 7; i++) {
         lv_obj_set_style_bg_color(fan_btns[i], lv_color_hex(0xDDDDDD), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(fan_btns[i], LV_OPA_COVER, LV_PART_MAIN);
     }
-    if(current_level >= 0) {
-        lv_obj_set_style_bg_color(fan_btns[current_level], lv_color_hex(COLORS_LIGHT_BLUE), LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(fan_btns[current_level], LV_OPA_COVER, LV_PART_MAIN);
-    }
+    int idx = current_level == -1 ? 6 : current_level;
+    lv_obj_set_style_bg_color(fan_btns[idx], lv_color_hex(COLORS_SELECTED), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(fan_btns[idx], LV_OPA_COVER, LV_PART_MAIN);
     update_mqtt();
 }
 
@@ -114,7 +114,7 @@ static void create_time_selector(lv_obj_t* parent) {
     lv_obj_set_width(min_roller, 60);
     // Set default selected option
     int16_t timer_min = timer_epoch - getCurrentEpochTime();
-    if(timer_min < 0){
+    if(timer_min < 0 || !is_timer_running()){
         timer_min = 0;
     }
     timer_min = timer_min / 60;
@@ -126,6 +126,40 @@ static void create_time_selector(lv_obj_t* parent) {
     lv_obj_add_event_cb(min_roller, time_selector_cb, LV_EVENT_VALUE_CHANGED, nullptr);
     lv_obj_add_event_cb(hour_roller, time_selector_cb, LV_EVENT_VALUE_CHANGED, nullptr);
 
+    // Save Button
+    lv_obj_t* save_btn = lv_btn_create(parent);
+    lv_obj_set_size(save_btn, 80, 40);
+    lv_obj_align(save_btn, LV_ALIGN_BOTTOM_MID, is_timer_running() ? 50 : 0, -10);
+    lv_obj_set_style_bg_color(save_btn, lv_color_hex(COLORS_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    lv_obj_t* save_label = lv_label_create(save_btn);
+    lv_label_set_text(save_label, "Save");
+    lv_obj_center(save_label);
+    set_black_text(save_label);
+
+    lv_obj_add_event_cb(save_btn, [](lv_event_t* e) {
+        time_selector_cb(e); // Save the selected time
+        lv_scr_load_anim(create_fan_control_screen(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, TRANSITION_TIME, 0, false);
+    }, LV_EVENT_CLICKED, NULL);
+
+    lv_obj_t* remove_btn = lv_btn_create(parent);
+    lv_obj_set_size(remove_btn, 80, 40);
+    lv_obj_align(remove_btn, LV_ALIGN_BOTTOM_MID, -50, -10);
+    lv_obj_set_style_bg_color(remove_btn, lv_color_hex(COLORS_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    lv_obj_t* remove_label = lv_label_create(remove_btn);
+    lv_label_set_text(remove_label, "Remove");
+    lv_obj_center(remove_label);
+    set_black_text(remove_label);
+
+    lv_obj_add_event_cb(remove_btn, [](lv_event_t* e) {
+        timer_epoch = getCurrentEpochTime()-1;
+        update_mqtt();
+        lv_scr_load_anim(create_fan_control_screen(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, TRANSITION_TIME, 0, false);
+    }, LV_EVENT_CLICKED, NULL);
+    if(!is_timer_running()){
+        lv_obj_add_flag(remove_btn, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 static lv_obj_t* create_set_timer_screen(){
@@ -138,10 +172,12 @@ static lv_obj_t* create_set_timer_screen(){
 
     lv_obj_t *back_label = lv_label_create(back_btn);
     lv_label_set_text(back_label, LV_SYMBOL_LEFT);
+    set_black_text(back_label);
     lv_obj_center(back_label);
 
     // Add an event callback to the button
     lv_obj_add_event_cb(back_btn, [](lv_event_t *e) {
+        time_selector_cb(e); // Save the selected time
         lv_scr_load_anim(create_advanced_screen(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, TRANSITION_TIME, 0, false);
     }, LV_EVENT_CLICKED, NULL);
 
@@ -166,6 +202,7 @@ static lv_obj_t* create_advanced_screen(){
     lv_obj_t *back_label = lv_label_create(back_btn);
     lv_label_set_text(back_label, LV_SYMBOL_LEFT);
     lv_obj_center(back_label);
+    set_black_text(back_label);
 
     // Add an event callback to the button
     lv_obj_add_event_cb(back_btn, [](lv_event_t *e) {
@@ -180,6 +217,7 @@ static lv_obj_t* create_advanced_screen(){
     lv_obj_t *set_timer_label = lv_label_create(set_timer_btn);
     lv_label_set_text(set_timer_label, (timer_epoch - getCurrentEpochTime()) < MAX_TIMER ? "Stop and set timer" : "Set Timer");
     lv_obj_center(set_timer_label);
+    set_black_text(set_timer_label);
 
 
     lv_obj_add_event_cb(set_timer_btn, [](lv_event_t *e) {
@@ -240,6 +278,7 @@ lv_obj_t* create_fan_control_screen() {
     lv_obj_t *label_adv = lv_label_create(btn_advanced);
     lv_label_set_text(label_adv, "Advanced");
     lv_obj_center(label_adv);
+    set_black_text(label_adv);
 
     lv_obj_t *back_btn = lv_btn_create(scr);
     lv_obj_align(back_btn, LV_ALIGN_TOP_LEFT, 10, 10);
@@ -249,6 +288,7 @@ lv_obj_t* create_fan_control_screen() {
     lv_obj_t *back_label = lv_label_create(back_btn);
     lv_label_set_text(back_label, LV_SYMBOL_LEFT);
     lv_obj_center(back_label);
+    set_black_text(back_label);
 
 
     // Fan Speed Buttons (1-6 arranged in a circle)
@@ -315,9 +355,7 @@ lv_obj_t* create_fan_control_screen() {
             lv_label_set_text(label, LV_SYMBOL_STOP);
         }
         lv_obj_center(label);
-        if(i < 6){
-            fan_btns[i] = btn;
-        }
+        fan_btns[i] = btn;
     }
     update_selected_level();
 
@@ -331,6 +369,7 @@ lv_obj_t* create_fan_control_screen() {
     lv_obj_t *rev_label = lv_label_create(rev_btn);
     lv_label_set_text(rev_label, LV_SYMBOL_REFRESH);  // symbol for reverse
     lv_obj_center(rev_label);
+    set_black_text(rev_label);
 
 
     // Light Toggle Button
@@ -343,6 +382,7 @@ lv_obj_t* create_fan_control_screen() {
     lv_label_set_text(light_label, LV_SYMBOL_POWER);
     lv_obj_center(light_label);
     update_power_display();
+    set_black_text(light_label);
 
     time_left_label = lv_label_create(scr);
     lv_obj_set_style_text_font(time_left_label, &lv_font_montserrat_24, 0);
@@ -365,6 +405,7 @@ lv_obj_t* create_fan_control_screen() {
                 ((timer_epoch - getCurrentEpochTime()) % 3600) / 60, 
                 (timer_epoch - getCurrentEpochTime()) % 60);
         }else {
+            lv_obj_set_style_text_font(time_left_label, &lv_font_montserrat_18, 0);
             lv_label_set_text(time_left_label, "Timer Finished");
             lv_timer_del(t);
         }

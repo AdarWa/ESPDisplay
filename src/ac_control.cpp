@@ -107,6 +107,7 @@ static lv_obj_t* create_advanced_screen(){
     lv_obj_t *back_label = lv_label_create(back_btn);
     lv_label_set_text(back_label, LV_SYMBOL_LEFT);
     lv_obj_center(back_label);
+    set_black_text(back_label);
 
     // Add an event callback to the button
     lv_obj_add_event_cb(back_btn, [](lv_event_t *e) {
@@ -191,6 +192,7 @@ lv_obj_t* create_ac_control_screen() {
     lv_obj_t *label_adv = lv_label_create(btn_advanced);
     lv_label_set_text(label_adv, "Advanced");
     lv_obj_center(label_adv);
+    set_black_text(label_adv);
 
     lv_obj_t *back_btn = lv_btn_create(scr);
     lv_obj_align(back_btn, LV_ALIGN_TOP_LEFT, 10, 10);
@@ -200,6 +202,7 @@ lv_obj_t* create_ac_control_screen() {
     lv_obj_t *back_label = lv_label_create(back_btn);
     lv_label_set_text(back_label, LV_SYMBOL_LEFT);
     lv_obj_center(back_label);
+    set_black_text(back_label);
 
     // Power icon button (top center)
     btn_power = lv_btn_create(scr);
@@ -211,6 +214,7 @@ lv_obj_t* create_ac_control_screen() {
     lv_label_set_text(icon, LV_SYMBOL_POWER);
     lv_obj_set_style_text_font(icon, &lv_font_montserrat_28, 0);
     lv_obj_center(icon);
+    set_black_text(icon);
     update_power_display();
 
     // Row for - Temp + controls
@@ -232,7 +236,7 @@ lv_obj_t* create_ac_control_screen() {
     lv_obj_set_style_text_font(label_dec, &lv_font_montserrat_32, 0);  // Bigger font
     lv_obj_center(label_dec);
     lv_obj_set_style_bg_color(btn_dec, lv_color_hex(COLORS_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
-
+    set_black_text(label_dec);
     // Temperature label
     temp_label = lv_label_create(control_row);
     lv_obj_set_style_text_font(temp_label, &lv_font_montserrat_28, 0);  // Smaller font
@@ -249,7 +253,7 @@ lv_obj_t* create_ac_control_screen() {
     lv_obj_set_style_text_font(label_inc, &lv_font_montserrat_32, 0);  // Bigger font
     lv_obj_center(label_inc);
     lv_obj_set_style_bg_color(btn_inc, lv_color_hex(COLORS_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-
+    set_black_text(label_inc);
 
     // Row for Fan Level controls (smaller buttons)
     lv_obj_t *fan_control_row = lv_obj_create(scr);
@@ -270,7 +274,7 @@ lv_obj_t* create_ac_control_screen() {
     lv_obj_set_style_text_font(fan_label_dec, &lv_font_montserrat_26, 0);  // Bigger font
     lv_obj_center(fan_label_dec);
     lv_obj_set_style_bg_color(fan_btn_dec, lv_color_hex(COLORS_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
-
+    set_black_text(fan_label_dec);
 
 
     // Fan Level label (in the center)
@@ -293,5 +297,6 @@ lv_obj_t* create_ac_control_screen() {
     lv_obj_set_style_text_font(fan_label_inc, &lv_font_montserrat_26, 0);  // Bigger font
     lv_obj_center(fan_label_inc);
     lv_obj_set_style_bg_color(fan_btn_inc, lv_color_hex(COLORS_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
+    set_black_text(fan_label_inc);
     return scr;
 }

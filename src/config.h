@@ -1,6 +1,11 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// MACROS
+#define set_black_text(obj) lv_obj_set_style_text_color(obj, lv_color_hex(COLORS_BLACK), LV_PART_MAIN)
+
+// END OF MACROS
+
 #define MAX_TEMP       30
 #define MIN_TEMP       16
 #define DEFAULT_TEMP   22
@@ -37,5 +42,7 @@
 #define COLORS_RED 0xf44336
 #define COLORS_ORANGE 0xffa500
 #define COLORS_LIGHT_BLUE 0x4db6ac
+#define COLORS_BLACK 0x000000
+#define COLORS_SELECTED 0xBD9391
 
 #endif // CONFIG_H
