@@ -19,6 +19,15 @@ extern HASwitch fan_light;
 extern HASensorNumber fan_speed;
 extern HASensorNumber fan_timer;
 
+// Climate Control
+extern HASwitch climate_enable;
+extern HASensorNumber climate_temp;
+
+
+// General Getters
+HAMqtt* getMqtt();
+HADevice* getDevice();
+
 
 void ha_begin();
 void ha_loop();

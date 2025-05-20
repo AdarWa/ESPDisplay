@@ -18,6 +18,9 @@ HASwitch fan_light("fan_light");
 HASensorNumber fan_speed("fan_speed", HASensorNumber::PrecisionP0);
 HASensorNumber fan_timer("fan_timer", HASensorNumber::PrecisionP0);
 
+HASwitch climate_enable("climate_enable");
+HASensorNumber climate_temp("climate_temp", HASensorNumber::PrecisionP0);
+
 static unsigned long zero_epoch = 0;
 
 // Command handler for switch
@@ -36,6 +39,15 @@ unsigned long getCurrentEpochTime() {
 
 unsigned long getRealEpochTime() {
     return zero_epoch + (millis() / 1000) + EPOCH_ZERO;
+}
+
+
+HAMqtt* getMqtt() {
+    return &mqtt;
+}
+
+HADevice* getDevice() {
+    return &device;
 }
 
 void onCustomMessage(const char* topic, const uint8_t* payload, uint16_t length) {
@@ -68,6 +80,7 @@ void ha_begin() {
     device.setSoftwareVersion("1.0.0");
     device.setManufacturer(MQTT_MANUFACTURER);
     device.setModel(MQTT_MODEL);
+    device.enableSharedAvailability();
 
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     while (WiFi.status() != WL_CONNECTED) {
@@ -96,9 +109,16 @@ void ha_begin() {
     fan_speed.setName("Fan Speed");
     fan_timer.setName("Fan Timer");
 
+    climate_enable.setName("Climate Enable");
+    
+    climate_temp.setName("Climate Temp");
+    climate_temp.setUnitOfMeasurement("°C");
+    climate_temp.setDeviceClass("temperature");
+
     ac_control_power.setRetain(true);
     fan_reverse.setRetain(true);
     fan_light.setRetain(true);
+    climate_enable.setRetain(true);
 
 
     // Register entities

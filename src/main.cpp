@@ -14,6 +14,7 @@
 #include "utils.h"
 #include "config.h"
 #include "spiffs_handler.h"
+#include "component_includer.h"
 
 
 // Touchscreen pins
@@ -48,9 +49,12 @@ unsigned long last_touch_time = 0;
 
 void go_to_sleep() {
   #if ENABLE_SLEEP
+  getDevice()->setAvailability(false);
+  ha_loop();
+  Serial.println(getDevice()->isAvailable());
   Serial.println("Going to sleep...");
   Serial.flush();
-  delay(100); // Let serial print
+  delay(500); // Let serial print
   // Configure external wakeup on falling edge of IO36
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_36, 0);
   esp_deep_sleep_start();  // Enter deep sleep
@@ -127,30 +131,40 @@ void setup() {
   lv_indev_set_read_cb(indev, touchscreen_read);
 
   // Function to draw the GUI (text, buttons and sliders)
-//   lv_create_main_gui();
     lv_scr_load(create_home_screen());
     show_message_box("Connecting to WiFi...", "...");
     init_millis = millis();
     last_touch_time = millis();
+
+
 }
 
 unsigned long lastLVGLTick = 0;
 
 void loop() {
     // Call lv_timer_handler often
-    lv_timer_handler();  // required for LVGL to render & handle input
+    lv_timer_handler();  // required for LVGL to render and handle input
 
-    // Update LVGL tick every 5 ms
-
-
-    delay(1);
+    delay(5);
       if(!init_flag){
+        // Initialize WiFi and MQTT connection
         ha_begin();
       }
       ha_loop();
       if(!init_flag){
         close_message_box();
-        init_flag=true;    
+        // Initialize the active components to keep Home Assistant up to date
+        #if AC_CONTROL != 0
+          AC_CONTROL_INIT();
+        #endif
+        #if CLIMATE_CONTROL != 0
+          CLIMATE_CONTROL_INIT();
+        #endif
+        #if FAN != 0
+          FAN_INIT();
+        #endif
+        getDevice()->setAvailability(true);
+        init_flag=true;
       }
     unsigned long now = millis();
     lv_tick_inc(now - lastLVGLTick);

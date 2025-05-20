@@ -3,7 +3,6 @@
 
 // MACROS
 #define set_black_text(obj) lv_obj_set_style_text_color(obj, lv_color_hex(COLORS_BLACK), LV_PART_MAIN)
-
 // END OF MACROS
 
 #define MAX_TEMP       30

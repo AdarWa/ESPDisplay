@@ -1,21 +1,7 @@
 #include <lvgl.h>
 #include "home.h"
 #include "config.h"
-#if AC_CONTROL != 0
-#pragma message("Including AC Control component.")
-#define AC_CONTROL_INIT create_ac_control_screen
-#include "ac_control.h"
-#endif
-#if CLIMATE_CONTROL != 0
-#pragma message("Including Climate Control component.")
-#define CLIMATE_CONTROL_INIT create_climate_control_screen
-#include "climate_control.h"
-#endif 
-#if FAN != 0
-#pragma message("Including Fan component.")
-#define FAN_INIT create_fan_control_screen
-#include "fan.h"
-#endif 
+#include "component_includer.h"
 
 lv_obj_t *create_app_button(lv_obj_t *parent, const char *name,const lv_font_t *font, const char *component) {
     // Create the button

@@ -2,12 +2,53 @@
 #include "home.h"
 #include "config.h"
 #include <lvgl.h>
+#include "ha_helper.h"
+#include "spiffs_handler.h"
+
 
 
 static int current_temp = DEFAULT_TEMP;
 static lv_obj_t *temp_label;
 static lv_obj_t *btn_power;
 static bool power = true;
+
+static bool first_init = true;
+
+static void save_state(){
+    StaticJsonDocument<256> state;
+    state["power"] = power;
+    state["temp"] = current_temp;
+    spiffs_save_json("/climate.json", state);
+}
+
+static void update_mqtt(bool save = true){
+    if(save){
+        save_state();
+    }
+    climate_enable.setState(power);
+    climate_temp.setValue((float)current_temp);
+}
+
+static void fetch_state(){
+    if(!first_init){
+        return;
+    }
+    first_init = false;
+    if(!spiffs_file_exists("/climate.json")){
+        Serial.println("climate state file not found, creating default state");
+        save_state();
+    }
+    Serial.println("Loading climate state from file");
+    StaticJsonDocument<256> state;
+    if(spiffs_load_json("/climate.json", state)){
+        power = state["power"];
+        current_temp = state["temp"];
+    }else{
+        Serial.println("Failed to load climate state from file");
+    }
+    update_mqtt(false);
+}
+
 
 static lv_obj_t* create_advanced_screen(){
     lv_obj_t *scr = lv_obj_create(NULL);
@@ -20,6 +61,7 @@ static lv_obj_t* create_advanced_screen(){
     lv_obj_t *back_label = lv_label_create(back_btn);
     lv_label_set_text(back_label, LV_SYMBOL_LEFT);
     lv_obj_center(back_label);
+    set_black_text(back_label);
 
     // Add an event callback to the button
     lv_obj_add_event_cb(back_btn, [](lv_event_t *e) {
@@ -42,6 +84,7 @@ static void update_temp_display() {
     static char buf[16];
     lv_snprintf(buf, sizeof(buf), "%d°", current_temp);
     lv_label_set_text(temp_label, buf);
+    update_mqtt();
 }
 
 static void update_power_display() {
@@ -49,6 +92,7 @@ static void update_power_display() {
                                 : lv_color_hex(COLORS_RED);
     lv_obj_set_style_bg_color(btn_power, color, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(btn_power, LV_OPA_COVER, LV_PART_MAIN);
+    update_mqtt();
 }
 
 static void btn_temp_inc_event_cb(lv_event_t *e) {
@@ -87,6 +131,7 @@ lv_obj_t* create_climate_control_screen() {
     lv_obj_t *label_adv = lv_label_create(btn_advanced);
     lv_label_set_text(label_adv, "Advanced");
     lv_obj_center(label_adv);
+    set_black_text(label_adv);
 
     lv_obj_t *back_btn = lv_btn_create(scr);
     lv_obj_align(back_btn, LV_ALIGN_TOP_LEFT, 10, 10);
@@ -96,6 +141,7 @@ lv_obj_t* create_climate_control_screen() {
     lv_obj_t *back_label = lv_label_create(back_btn);
     lv_label_set_text(back_label, LV_SYMBOL_LEFT);
     lv_obj_center(back_label);
+    set_black_text(back_label);
 
     // Power icon button (top center)
     btn_power = lv_btn_create(scr);
@@ -108,6 +154,7 @@ lv_obj_t* create_climate_control_screen() {
     lv_obj_set_style_text_font(icon, &lv_font_montserrat_28, 0);
     lv_obj_center(icon);
     update_power_display();
+    set_black_text(icon);
 
     // Row for - Temp + controls
     lv_obj_t *control_row = lv_obj_create(scr);
@@ -128,6 +175,7 @@ lv_obj_t* create_climate_control_screen() {
     lv_obj_set_style_text_font(label_dec, &lv_font_montserrat_32, 0);  // Bigger font
     lv_obj_center(label_dec);
     lv_obj_set_style_bg_color(btn_dec, lv_color_hex(COLORS_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
+    set_black_text(label_dec);
 
     // Temperature label
     temp_label = lv_label_create(control_row);
@@ -145,6 +193,7 @@ lv_obj_t* create_climate_control_screen() {
     lv_obj_set_style_text_font(label_inc, &lv_font_montserrat_32, 0);  // Bigger font
     lv_obj_center(label_inc);
     lv_obj_set_style_bg_color(btn_inc, lv_color_hex(COLORS_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
+    set_black_text(label_inc);
 
     return scr;
 }
