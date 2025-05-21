@@ -46,6 +46,14 @@ static void update_mqtt(bool save = true){
     fan_timer.setValue((float)timer_epoch);
 }
 
+void fan_set_state(bool light_power_, bool fan_dir_, unsigned long timer_epoch_, int16_t current_level_){
+    light_power = light_power_;
+    fan_dir = fan_dir_;
+    timer_epoch = timer_epoch_;
+    current_level = current_level_;
+    update_mqtt();
+}
+
 static void fetch_state(){
     if(!first_init){
         return;

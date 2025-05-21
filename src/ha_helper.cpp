@@ -2,6 +2,8 @@
 #include <WiFi.h>
 #include "config.h"
 #include "secrets.h"
+#include <ArduinoJson.h>
+#include "component_includer.h"
 
 // Core objects
 WiFiClient wifiClient;
@@ -50,6 +52,18 @@ HADevice* getDevice() {
     return &device;
 }
 
+void handleUpdate(StaticJsonDocument<256>& doc){
+    #if AC_CONTROL != 0
+    ac_set_state(doc["ac_control_power"],doc["ac_control_temp"], doc["ac_control_fan"]);
+    #endif
+    #if CLIMATE_CONTROL != 0
+    climate_set_state(doc["climate_enable"], doc["climate_temp"]);
+    #endif
+    #if FAN != 0
+    fan_set_state(doc["fan_reverse"], doc["fan_light"], doc["fan_speed"], doc["fan_timer"]);
+    #endif
+}
+
 void onCustomMessage(const char* topic, const uint8_t* payload, uint16_t length) {
     Serial.print("Received message on topic: ");
     Serial.println(topic);
@@ -66,6 +80,19 @@ void onCustomMessage(const char* topic, const uint8_t* payload, uint16_t length)
         Serial.print("Epoch received: ");
         Serial.println(epoch);
         zero_epoch = epoch;
+    }else if(strcmp(topic, strcat(strcat("display/",MQTT_UNIQUE_ID),"/updates")) == 0) {
+        Serial.print("Update received: ");
+        char buffer[length + 1];
+        memcpy(buffer, payload, length);
+        buffer[length] = '\0';
+        StaticJsonDocument<256> doc;
+        DeserializationError error = deserializeJson(doc, buffer);
+        if (error) {
+            Serial.print(F("deserializeJson() failed: "));
+            Serial.println(error.f_str());
+            return;
+        }
+        handleUpdate(doc);
     }
 }
 
@@ -134,6 +161,7 @@ void ha_begin() {
     mqtt.onConnected([]() {
         Serial.println("MQTT connected!");
         mqtt.subscribe("time/epoch");
+        mqtt.subscribe(strcat(strcat("display/",MQTT_UNIQUE_ID),"/updates"));
         mqtt.publish("time/request", "epoch");
     });
     if(mqtt.begin(MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASSWORD)){

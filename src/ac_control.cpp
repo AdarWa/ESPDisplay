@@ -16,6 +16,8 @@ static bool first_init = true;
 static int16_t current_fan_level = 3;
 static lv_obj_t *fan_dots[FAN_LEVELS];
 
+
+
 static void save_state(){
     StaticJsonDocument<256> state;
     state["ac_power"] = ac_power;
@@ -31,6 +33,13 @@ static void update_mqtt(bool save = true){
     ac_control_power.setState(ac_power);
     ac_control_temp.setValue((float)current_temp);
     ac_control_fan.setValue((float)current_fan_level+1);
+}
+
+void ac_set_state(bool ac_power_, int16_t current_temp_, int16_t current_fan_level_){
+    ac_power = ac_power_;
+    current_temp = current_temp_;
+    current_fan_level = current_fan_level_;
+    update_mqtt();
 }
 
 static void fetch_state(){

@@ -29,6 +29,12 @@ static void update_mqtt(bool save = true){
     climate_temp.setValue((float)current_temp);
 }
 
+void climate_set_state(bool power_, int16_t current_temp_){
+    power = power_;
+    current_temp = current_temp_;
+    update_mqtt();
+}
+
 static void fetch_state(){
     if(!first_init){
         return;
