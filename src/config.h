@@ -30,7 +30,7 @@
 #define MQTT_DEVICE_NAME "Display Remote Control"
 #define MQTT_MANUFACTURER "Wasserman Inc."
 #define MQTT_MODEL "ESP32"
-#define MQTT_UNIQUE_ID "wass1"
+#define MQTT_UPDATE_TOPIC "display/wass1/updates"
 
 //Sleep
 #define SLEEP_THRESHOLD 30000  // 30 seconds

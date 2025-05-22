@@ -23,6 +23,8 @@ extern HASensorNumber fan_timer;
 extern HASwitch climate_enable;
 extern HASensorNumber climate_temp;
 
+extern HASwitch is_available;
+
 
 // General Getters
 HAMqtt* getMqtt();

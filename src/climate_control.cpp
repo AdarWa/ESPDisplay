@@ -14,6 +14,10 @@ static bool power = true;
 
 static bool first_init = true;
 
+bool is_climate_enabled() {
+    return power;
+}
+
 static void save_state(){
     StaticJsonDocument<256> state;
     state["power"] = power;
@@ -33,6 +37,11 @@ void climate_set_state(bool power_, int16_t current_temp_){
     power = power_;
     current_temp = current_temp_;
     update_mqtt();
+}
+
+void climate_set_state(StaticJsonDocument<256>& doc){
+    climate_set_state(doc.containsKey("climate_enable") ? doc["climate_enable"] : power,
+        doc.containsKey("climate_temp") ? doc["climate_temp"] : current_temp);
 }
 
 static void fetch_state(){
@@ -121,6 +130,7 @@ static void btn_power_toggle_cb(lv_event_t *e) {
 }
 
 lv_obj_t* create_climate_control_screen() {
+    fetch_state();
     lv_obj_t *scr = lv_obj_create(NULL);
 
     lv_obj_set_style_bg_color(scr, lv_color_hex(0xf0f0f0), 0);

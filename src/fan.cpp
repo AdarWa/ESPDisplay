@@ -4,6 +4,8 @@
 #include "ha_helper.h"
 #include <math.h>
 #include "spiffs_handler.h"
+#include "utils.h"
+#include "climate_control.h"
 
 #define MAX_TIMER 60*60*23 + 55*60
 #define is_timer_running() (timer_epoch - getCurrentEpochTime() < MAX_TIMER)
@@ -54,6 +56,13 @@ void fan_set_state(bool light_power_, bool fan_dir_, unsigned long timer_epoch_,
     update_mqtt();
 }
 
+void fan_set_state(StaticJsonDocument<256>& doc){
+    fan_set_state(doc.containsKey("fan_light") ? doc["fan_light"] : light_power,
+        doc.containsKey("fan_reverse") ? doc["fan_reverse"] : fan_dir,
+        doc.containsKey("fan_timer") ? doc["fan_timer"] : timer_epoch,
+        doc.containsKey("fan_speed") ? doc["fan_speed"] : current_level);
+}
+
 static void fetch_state(){
     if(!first_init){
         return;
@@ -82,7 +91,7 @@ static void update_selected_level(){
         lv_obj_set_style_bg_opa(fan_btns[i], LV_OPA_COVER, LV_PART_MAIN);
     }
     int idx = current_level == -1 ? 6 : current_level;
-    lv_obj_set_style_bg_color(fan_btns[idx], lv_color_hex(COLORS_SELECTED), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(fan_btns[idx], lv_color_hex(COLORS_GREEN), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(fan_btns[idx], LV_OPA_COVER, LV_PART_MAIN);
     update_mqtt();
 }
@@ -418,6 +427,9 @@ lv_obj_t* create_fan_control_screen() {
             lv_timer_del(t);
         }
     }, 1000, NULL);
+
+    if(is_climate_enabled())
+        create_warning_label(scr, "Controlled by\nClimate Control");
     
 
     return scr;

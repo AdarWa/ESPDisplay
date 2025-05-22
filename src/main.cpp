@@ -49,9 +49,8 @@ unsigned long last_touch_time = 0;
 
 void go_to_sleep() {
   #if ENABLE_SLEEP
-  getDevice()->setAvailability(false);
+  is_available.setState(false);
   ha_loop();
-  Serial.println(getDevice()->isAvailable());
   Serial.println("Going to sleep...");
   Serial.flush();
   delay(500); // Let serial print
@@ -163,7 +162,6 @@ void loop() {
         #if FAN != 0
           FAN_INIT();
         #endif
-        getDevice()->setAvailability(true);
         init_flag=true;
       }
     unsigned long now = millis();

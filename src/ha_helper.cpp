@@ -23,6 +23,9 @@ HASensorNumber fan_timer("fan_timer", HASensorNumber::PrecisionP0);
 HASwitch climate_enable("climate_enable");
 HASensorNumber climate_temp("climate_temp", HASensorNumber::PrecisionP0);
 
+HASwitch is_available("is_available");
+
+
 static unsigned long zero_epoch = 0;
 
 // Command handler for switch
@@ -53,14 +56,33 @@ HADevice* getDevice() {
 }
 
 void handleUpdate(StaticJsonDocument<256>& doc){
+    /*
+    * Handle the update message from Home Assistant
+    * This function is called when a message is received on the MQTT_UPDATE_TOPIC
+    * 
+    * The format of the message should be as follows:
+    * {
+    *     "ac_control_power": boolean,
+    *     "ac_control_temp": int16,
+    *     "ac_control_fan": int16,
+    *     "fan_reverse": boolean,
+    *     "fan_light": boolean,
+    *     "fan_speed": int16,
+    *     "fan_timer": unsigned long,
+    *     "climate_enable": boolean,
+    *     "climate_temp": int16
+    * }
+    * 
+    * any one of the above keys can be present or absent in the message, and only the present keys will be updated.
+    */
     #if AC_CONTROL != 0
-    ac_set_state(doc["ac_control_power"],doc["ac_control_temp"], doc["ac_control_fan"]);
+    ac_set_state(doc);
     #endif
     #if CLIMATE_CONTROL != 0
-    climate_set_state(doc["climate_enable"], doc["climate_temp"]);
+    climate_set_state(doc);
     #endif
     #if FAN != 0
-    fan_set_state(doc["fan_reverse"], doc["fan_light"], doc["fan_speed"], doc["fan_timer"]);
+    fan_set_state(doc);
     #endif
 }
 
@@ -80,7 +102,7 @@ void onCustomMessage(const char* topic, const uint8_t* payload, uint16_t length)
         Serial.print("Epoch received: ");
         Serial.println(epoch);
         zero_epoch = epoch;
-    }else if(strcmp(topic, strcat(strcat("display/",MQTT_UNIQUE_ID),"/updates")) == 0) {
+    }else if(strcmp(topic, MQTT_UPDATE_TOPIC) == 0) {
         Serial.print("Update received: ");
         char buffer[length + 1];
         memcpy(buffer, payload, length);
@@ -107,7 +129,6 @@ void ha_begin() {
     device.setSoftwareVersion("1.0.0");
     device.setManufacturer(MQTT_MANUFACTURER);
     device.setModel(MQTT_MODEL);
-    device.enableSharedAvailability();
 
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     while (WiFi.status() != WL_CONNECTED) {
@@ -142,6 +163,8 @@ void ha_begin() {
     climate_temp.setUnitOfMeasurement("°C");
     climate_temp.setDeviceClass("temperature");
 
+    is_available.setName("Is Available");
+
     ac_control_power.setRetain(true);
     fan_reverse.setRetain(true);
     fan_light.setRetain(true);
@@ -161,8 +184,9 @@ void ha_begin() {
     mqtt.onConnected([]() {
         Serial.println("MQTT connected!");
         mqtt.subscribe("time/epoch");
-        mqtt.subscribe(strcat(strcat("display/",MQTT_UNIQUE_ID),"/updates"));
+        mqtt.subscribe(MQTT_UPDATE_TOPIC);
         mqtt.publish("time/request", "epoch");
+        is_available.setState(true);
     });
     if(mqtt.begin(MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASSWORD)){
         Serial.println("MQTT connection initialized");

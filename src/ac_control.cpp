@@ -2,6 +2,8 @@
 #include "home.h"
 #include "config.h"
 #include "ha_helper.h"
+#include "utils.h"
+#include "climate_control.h"
 #include <lvgl.h>
 #include "spiffs_handler.h"
 
@@ -40,6 +42,12 @@ void ac_set_state(bool ac_power_, int16_t current_temp_, int16_t current_fan_lev
     current_temp = current_temp_;
     current_fan_level = current_fan_level_;
     update_mqtt();
+}
+
+void ac_set_state(StaticJsonDocument<256>& doc){
+    ac_set_state(doc.containsKey("ac_control_power") ? doc["ac_control_power"] : ac_power,
+        doc.containsKey("ac_control_temp") ? doc["ac_control_temp"] : current_temp,
+        doc.containsKey("ac_control_fan") ? doc["ac_control_fan"] : current_fan_level);
 }
 
 static void fetch_state(){
@@ -307,5 +315,7 @@ lv_obj_t* create_ac_control_screen() {
     lv_obj_center(fan_label_inc);
     lv_obj_set_style_bg_color(fan_btn_inc, lv_color_hex(COLORS_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
     set_black_text(fan_label_inc);
+    if(is_climate_enabled())
+        create_warning_label(scr, "Controlled by\nClimate Control");
     return scr;
 }
