@@ -15,3 +15,8 @@
 #define FAN_INIT create_fan_control_screen
 #include "fan.h"
 #endif 
+
+#if ALARM != 0
+#define ALARM_INIT create_alarm_screen
+#include "alarm.h"
+#endif

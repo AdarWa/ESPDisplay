@@ -21,7 +21,10 @@ lv_obj_t *create_app_button(lv_obj_t *parent, const char *name,const lv_font_t *
       #ifdef FAN_INIT
       lv_obj_add_event_cb(btn, [](lv_event_t *e) {lv_scr_load_anim(FAN_INIT(), LV_SCR_LOAD_ANIM_MOVE_LEFT, TRANSITION_TIME, 0, false);}, LV_EVENT_CLICKED, NULL);
       #endif
-
+    }else if(component == "ALARM"){
+      #ifdef ALARM_INIT
+      lv_obj_add_event_cb(btn, [](lv_event_t *e) {lv_scr_load_anim(ALARM_INIT(), LV_SCR_LOAD_ANIM_MOVE_LEFT, TRANSITION_TIME, 0, false);}, LV_EVENT_CLICKED, NULL);
+      #endif
     }
     
 
@@ -63,6 +66,10 @@ lv_obj_t *create_home_screen() {
 
     #if FAN != 0
       create_app_button(apps_cont, "FAN",&lv_font_montserrat_34, "FAN");
+    #endif
+
+    #if ALARM != 0
+      create_app_button(apps_cont, "ALARM",&lv_font_montserrat_20, "ALARM");
     #endif
 
     return scr;

@@ -11,19 +11,25 @@ HADevice device;
 HAMqtt mqtt(wifiClient, device);
 
 // Entities
-HASwitch ac_control_power("ac_control_power");
-HASensorNumber ac_control_temp("ac_control_temp", HASensorNumber::PrecisionP0);
-HASensorNumber ac_control_fan("ac_control_fan", HASensorNumber::PrecisionP0);
+// AC Control
+mkswitch(ac_control_power);
+mknumber(ac_control_temp);
+mknumber(ac_control_fan);
 
-HASwitch fan_reverse("fan_reverse");
-HASwitch fan_light("fan_light");
-HASensorNumber fan_speed("fan_speed", HASensorNumber::PrecisionP0);
-HASensorNumber fan_timer("fan_timer", HASensorNumber::PrecisionP0);
+// Fan Control
+mkswitch(fan_reverse);
+mkswitch(fan_light);
+mknumber(fan_speed);
+mknumber(fan_timer);
 
-HASwitch climate_enable("climate_enable");
-HASensorNumber climate_temp("climate_temp", HASensorNumber::PrecisionP0);
+// Climate Control
+mkswitch(climate_enable)
+mknumber(climate_temp)
+mkswitch(climate_boost)
+mkswitch(climate_sleep);
 
-HASwitch is_available("is_available");
+mkswitch(is_available);
+
 
 
 static unsigned long zero_epoch = 0;
@@ -83,6 +89,9 @@ void handleUpdate(StaticJsonDocument<256>& doc){
     #endif
     #if FAN != 0
     fan_set_state(doc);
+    #endif
+    #if ALARM != 0
+    alarm_set_state(doc);
     #endif
 }
 
@@ -164,6 +173,9 @@ void ha_begin() {
     climate_temp.setDeviceClass("temperature");
 
     is_available.setName("Is Available");
+
+    climate_boost.setName("Climate Boost");
+    climate_sleep.setName("Climate Sleep");
 
     ac_control_power.setRetain(true);
     fan_reverse.setRetain(true);

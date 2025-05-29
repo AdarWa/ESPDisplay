@@ -1,4 +1,5 @@
 #include "utils.h"
+#include <stdio.h>
 
 static lv_obj_t* g_msgbox_bg = NULL;
 
@@ -108,4 +109,23 @@ lv_obj_t* create_warning_label(lv_obj_t* parent, const char* text) {
 static void close_warning_event_handler(lv_event_t* e) {
     lv_obj_t* cont = (lv_obj_t*)lv_event_get_user_data(e); // warning container passed as user data
     lv_obj_del(cont); // delete the entire warning
+}
+
+void simplifyTimeDiff(unsigned long diff, char *buffer, size_t bufferSize) {
+    const unsigned long minute = 60;
+    const unsigned long hour = 60 * minute;
+    const unsigned long day = 24 * hour;
+    const unsigned long week = 7 * day;
+
+    if (diff < minute) {
+        snprintf(buffer, bufferSize, "%lu seconds", diff);
+    } else if (diff < hour) {
+        snprintf(buffer, bufferSize, "%lu minutes", diff / minute);
+    } else if (diff < day) {
+        snprintf(buffer, bufferSize, "%lu hours", diff / hour);
+    } else if (diff < week) {
+        snprintf(buffer, bufferSize, "%lu days", diff / day);
+    } else {
+        snprintf(buffer, bufferSize, "%lu weeks", diff / week);
+    }
 }

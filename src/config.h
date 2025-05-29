@@ -22,6 +22,7 @@
 #define AC_CONTROL 1
 #define CLIMATE_CONTROL 1
 #define FAN 1
+#define ALARM 1
 
 //MQTT
 #define MQTT_SERVER "192.168.1.32"
@@ -31,6 +32,7 @@
 #define MQTT_MANUFACTURER "Wasserman Inc."
 #define MQTT_MODEL "ESP32"
 #define MQTT_UPDATE_TOPIC "display/wass1/updates"
+#define MQTT_ALARM_TOPIC "display/wass1/alarm"
 
 //Sleep
 #define SLEEP_THRESHOLD 30000  // 30 seconds
