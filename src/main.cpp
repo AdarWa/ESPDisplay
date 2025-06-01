@@ -162,6 +162,9 @@ void loop() {
         #if FAN != 0
           FAN_INIT();
         #endif
+        #if ALARM != 0
+          ALARM_INIT();
+        #endif
         init_flag=true;
       }
     unsigned long now = millis();
