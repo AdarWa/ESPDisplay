@@ -6,6 +6,7 @@
 #include "spiffs_handler.h"
 #include "utils.h"
 #include "climate_control.h"
+#include "font_styles.h"
 
 #define MAX_TIMER 60*60*23 + 55*60
 #define is_timer_running() (timer_epoch - getCurrentEpochTime() < MAX_TIMER)
@@ -396,7 +397,8 @@ lv_obj_t* create_fan_control_screen() {
     lv_obj_add_event_cb(light_btn, btn_power_toggle_cb, LV_EVENT_CLICKED, NULL);
 
     lv_obj_t *light_label = lv_label_create(light_btn);
-    lv_label_set_text(light_label, LV_SYMBOL_POWER);
+    lv_obj_add_style(light_label, &fa_style,0);
+    lv_label_set_text(light_label, ICONS_LIGHTBULB);
     lv_obj_center(light_label);
     update_power_display();
     set_black_text(light_label);

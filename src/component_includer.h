@@ -20,3 +20,8 @@
 #define ALARM_INIT create_alarm_screen
 #include "alarm.h"
 #endif
+
+#if ROBOROCK != 0
+#define ROBOROCK_INIT create_roborock_screen
+#include "roborock.h"
+#endif

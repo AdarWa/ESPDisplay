@@ -23,6 +23,7 @@
 #define CLIMATE_CONTROL 1
 #define FAN 1
 #define ALARM 1
+#define ROBOROCK 1
 
 //MQTT
 #define MQTT_SERVER "192.168.1.32"

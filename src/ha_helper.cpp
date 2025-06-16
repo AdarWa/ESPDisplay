@@ -93,6 +93,9 @@ void handleUpdate(StaticJsonDocument<256>& doc){
     #if ALARM != 0
     alarm_set_state(doc);
     #endif
+    #if ROBOROCK != 0
+    roborock_set_state(doc);
+    #endif
 }
 
 void onCustomMessage(const char* topic, const uint8_t* payload, uint16_t length) {

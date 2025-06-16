@@ -15,7 +15,7 @@
 #include "config.h"
 #include "spiffs_handler.h"
 #include "component_includer.h"
-
+#include "font_styles.h"
 
 // Touchscreen pins
 #define XPT2046_IRQ 36   // T_IRQ
@@ -128,6 +128,7 @@ void setup() {
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
   // Set the callback function to read Touchscreen input
   lv_indev_set_read_cb(indev, touchscreen_read);
+  init_styles();
 
   // Function to draw the GUI (text, buttons and sliders)
     lv_scr_load(create_home_screen());
@@ -164,6 +165,9 @@ void loop() {
         #endif
         #if ALARM != 0
           ALARM_INIT();
+        #endif
+        #if ROBOROCK != 0
+          ROBOROCK_INIT();
         #endif
         init_flag=true;
       }
