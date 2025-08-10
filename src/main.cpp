@@ -17,6 +17,8 @@
 #include "component_includer.h"
 #include "font_styles.h"
 #include "battery_monitor.h"
+#include "base/PageBase.h"
+#include "page_registrer.h"
 
 // Touchscreen pins
 #define XPT2046_IRQ 36   // T_IRQ
@@ -143,7 +145,12 @@ void setup() {
   battery_update();
 
   // Function to draw the GUI (text, buttons and sliders)
-    lv_scr_load(create_home_screen());
+    // lv_scr_load(create_home_screen());
+    load_pages();
+    PageManager& manager = PageManager::getInstance();
+    manager.loadPage("home");
+    
+
     if(battery_present || ENABLE_BATTERY == 0) {
       show_message_box("Connecting to WiFi...", "...");
     }
@@ -165,6 +172,7 @@ void loop() {
         ha_begin();
       }
       ha_loop();
+      PageManager::getInstance().update();
       if(!init_flag){
         if(battery_present || ENABLE_BATTERY == 0)
           close_message_box();
