@@ -16,6 +16,7 @@
 #include "spiffs_handler.h"
 #include "component_includer.h"
 #include "font_styles.h"
+#include "battery_monitor.h"
 
 // Touchscreen pins
 #define XPT2046_IRQ 36   // T_IRQ
@@ -24,6 +25,7 @@
 #define XPT2046_CLK 25   // T_CLK
 #define XPT2046_CS 33    // T_CS
 
+boolean battery_present = true;
 SPIClass touchscreenSPI = SPIClass(VSPI);
 XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 
@@ -130,9 +132,21 @@ void setup() {
   lv_indev_set_read_cb(indev, touchscreen_read);
   init_styles();
 
+  // init the battery gauge
+  if(!battery_init()){
+    #if ENABLE_BATTERY != 0
+    Serial.println("Battery not detected. Please check wiring.");
+    show_message_box("Battery not detected", "Please check wiring.");
+    #endif
+    battery_present = false;
+  }
+  battery_update();
+
   // Function to draw the GUI (text, buttons and sliders)
     lv_scr_load(create_home_screen());
-    show_message_box("Connecting to WiFi...", "...");
+    if(battery_present || ENABLE_BATTERY == 0) {
+      show_message_box("Connecting to WiFi...", "...");
+    }
     init_millis = millis();
     last_touch_time = millis();
 
@@ -152,7 +166,8 @@ void loop() {
       }
       ha_loop();
       if(!init_flag){
-        close_message_box();
+        if(battery_present || ENABLE_BATTERY == 0)
+          close_message_box();
         // Initialize the active components to keep Home Assistant up to date
         #if AC_CONTROL != 0
           AC_CONTROL_INIT();

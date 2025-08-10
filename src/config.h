@@ -39,6 +39,10 @@
 #define SLEEP_THRESHOLD 30000  // 30 seconds
 #define ENABLE_SLEEP 1
 
+//Battery
+#define ENABLE_BATTERY 0
+#define ALERT_BATTERY_LEVEL 20 // Percentage
+
 //Colors
 #define COLORS_GRAY 0xcccccc
 #define COLORS_GREEN 0x4caf50

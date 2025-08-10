@@ -19,7 +19,7 @@ static lv_obj_t *time_label = NULL;
 static lv_obj_t *status_label = NULL;
 
 static void update_mqtt(const char* action, const char* state, bool raw = false){
-    // TODO: Implement working MQTT logic
+    #if 1
     if (raw) {
         HAMqtt* mqtt = getMqtt();
         mqtt->publish(MQTT_ALARM_TOPIC, action);
@@ -32,9 +32,11 @@ static void update_mqtt(const char* action, const char* state, bool raw = false)
     char out[80]; // FIXME: might cause buffer overflow
     serializeJson(doc, out);
     mqtt->publish(MQTT_ALARM_TOPIC, out);
+    #endif
 }
 
 static void update_last_update_time(){
+    #if 1
     if (last_update > 0) {
         unsigned long diff = getCurrentEpochTime() - last_update;
         if(diff > 5 && diff < MAX_LAST_UPDATE_DIFF) {
@@ -47,6 +49,7 @@ static void update_last_update_time(){
     } else {
         lv_label_set_text(time_label, "Never");
     }
+    #endif
 }
 
 static void update_scr(){
@@ -77,7 +80,6 @@ static void back_btn_event_cb(lv_event_t *e) {
 static void dock_btn_event_cb(lv_event_t *e) {
     LV_UNUSED(e);
     update_mqtt("robo_dock", "",true);
-    
 }
 
 static void stop_btn_event_cb(lv_event_t *e) {
@@ -87,7 +89,6 @@ static void stop_btn_event_cb(lv_event_t *e) {
 
 lv_obj_t* create_roborock_screen() {
     lv_obj_t *scr = lv_obj_create(NULL);
-    
     lv_obj_set_user_data(scr, (void*)(scr_name));
 
     lv_obj_set_style_bg_color(scr, lv_color_hex(0xf0f0f0), 0);
@@ -106,6 +107,7 @@ lv_obj_t* create_roborock_screen() {
 
     status_label = lv_label_create(scr);
     lv_label_set_text(status_label, robo_state.c_str());
+    // lv_label_set_text(status_label, "Idle");
     lv_obj_set_style_text_color(status_label, lv_color_black(), 0);
     lv_obj_set_style_text_font(status_label, &lv_font_montserrat_20, 0);
     lv_obj_align(status_label, LV_ALIGN_TOP_MID, 0, 8);
@@ -115,9 +117,10 @@ lv_obj_t* create_roborock_screen() {
     lv_obj_set_style_text_color(time_label, lv_color_hex(0x888888), 0);
     lv_obj_set_style_text_font(time_label, &lv_font_montserrat_12, 0);
     lv_obj_align_to(time_label, status_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 4);
-
+    
     lv_obj_t *row = lv_obj_create(scr);
     lv_obj_set_size(row, LV_PCT(100), 60);
+    lv_obj_set_layout(row, LV_LAYOUT_FLEX);
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0); // Transparent background
@@ -125,20 +128,20 @@ lv_obj_t* create_roborock_screen() {
     lv_obj_set_scroll_dir(row, LV_DIR_NONE);        // No scrolling
     lv_obj_align(row, LV_ALIGN_BOTTOM_MID, 0, -120); // Align to the bottom center
 
-    // Common style for buttons
-    lv_style_t style_btn;
-    lv_style_init(&style_btn);
-    lv_style_set_radius(&style_btn, 12);
-    lv_style_set_bg_color(&style_btn, lv_palette_main(LV_PALETTE_BLUE));
-    lv_style_set_bg_grad_color(&style_btn, lv_palette_darken(LV_PALETTE_BLUE, 2));
-    lv_style_set_bg_grad_dir(&style_btn, LV_GRAD_DIR_VER);
-    lv_style_set_text_color(&style_btn, lv_color_white());
-    lv_style_set_pad_all(&style_btn, 12);
-    lv_style_set_border_width(&style_btn, 0);
-
+    // Causes a crash if used. I have no idea why.
+    // lv_style_t style_btn;
+    // lv_style_init(&style_btn);
+    // lv_style_set_radius(&style_btn, 12);
+    // lv_style_set_bg_color(&style_btn, lv_palette_main(LV_PALETTE_BLUE));
+    // lv_style_set_bg_grad_color(&style_btn, lv_palette_darken(LV_PALETTE_BLUE, 2));
+    // lv_style_set_bg_grad_dir(&style_btn, LV_GRAD_DIR_VER);
+    // lv_style_set_text_color(&style_btn, lv_color_white());
+    // lv_style_set_pad_all(&style_btn, 12);
+    // lv_style_set_border_width(&style_btn, 0);
+    
     // Dock Button
     lv_obj_t *btn_dock = lv_btn_create(row);
-    lv_obj_add_style(btn_dock, &style_btn, 0);
+    // lv_obj_add_style(btn_dock, &style_btn, 0);
     lv_obj_set_size(btn_dock, 100, 40);
     lv_obj_t *label_dock = lv_label_create(btn_dock);
     lv_label_set_text(label_dock, "Dock");
@@ -146,13 +149,18 @@ lv_obj_t* create_roborock_screen() {
 
     // Stop Button
     lv_obj_t *btn_stop = lv_btn_create(row);
-    lv_obj_add_style(btn_stop, &style_btn, 0);
+    // lv_obj_add_style(btn_stop, &style_btn, 0);
     lv_obj_set_style_bg_color(btn_stop, lv_palette_main(LV_PALETTE_RED), 0);
     lv_obj_set_style_bg_grad_color(btn_stop, lv_palette_darken(LV_PALETTE_RED, 2), 0);
     lv_obj_set_size(btn_stop, 100, 40);
     lv_obj_t *label_stop = lv_label_create(btn_stop);
     lv_label_set_text(label_stop, "Stop");
     lv_obj_center(label_stop);
+
+    LV_ASSERT_NULL(btn_dock);
+    LV_ASSERT_NULL(btn_stop);
+    LV_ASSERT_NULL(dock_btn_event_cb);
+    LV_ASSERT_NULL(stop_btn_event_cb);
     
     lv_obj_add_event_cb(btn_dock, dock_btn_event_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(btn_stop, stop_btn_event_cb, LV_EVENT_CLICKED, NULL);
