@@ -1,6 +1,6 @@
-# ESP32 Development Project
+# ESP32 Display Remote
 
-This repository contains the source code and configuration files for an ESP32 development project.
+This repository hosts the code for the Home Assistant Display Remote, which was made for controlling Home Assistant through a nice phone-like display.
 
 ## Requirements
 
