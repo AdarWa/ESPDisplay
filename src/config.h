@@ -15,6 +15,10 @@
 
 #define FAN_LEVELS 6
 
+// Screen Dimentions
+#define SCREEN_WIDTH 240
+#define SCREEN_HEIGHT 320
+
 // Time Synchronization
 #define EPOCH_ZERO 1735686000 // in seconds 1-1-2025 01:00:00 GMT+2
 
