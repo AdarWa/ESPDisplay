@@ -9,14 +9,12 @@
 // Install the "XPT2046_Touchscreen" library by Paul Stoffregen to use the Touchscreen - https://github.com/PaulStoffregen/XPT2046_Touchscreen - Note: this library doesn't require further configuration
 #include <XPT2046_Touchscreen.h>
 #include "esp_sleep.h"
-#include "ha_helper.h"
-#include "home.h"
-#include "utils.h"
+#include "utils/utils.h"
 #include "config.h"
 #include "spiffs_handler.h"
-#include "component_includer.h"
-#include "font_styles.h"
+#include "fonts/font_styles.h"
 #include "battery_monitor.h"
+#include "screen_registrer.h"
 
 // Touchscreen pins
 #define XPT2046_IRQ 36   // T_IRQ
@@ -30,9 +28,6 @@ SPIClass touchscreenSPI = SPIClass(VSPI);
 XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 
 #define TOUCH_WAKEUP_PIN 36    // T_IRQ pin (used as wake-up source)
-
-#define SCREEN_WIDTH 240
-#define SCREEN_HEIGHT 320
 
 // Touchscreen coordinates: (x, y) and pressure (z)
 int x, y, z;
@@ -51,8 +46,6 @@ unsigned long last_touch_time = 0;
 
 void go_to_sleep() {
   #if ENABLE_SLEEP
-  is_available.setState(false);
-  ha_loop();
   Serial.println("Going to sleep...");
   Serial.flush();
   delay(500); // Let serial print
@@ -142,8 +135,11 @@ void setup() {
   }
   battery_update();
 
+  register_screens();
+  ScreenManager::getInstance().switchTo("TestScreen");
+
+
   // Function to draw the GUI (text, buttons and sliders)
-    lv_scr_load(create_home_screen());
     if(battery_present || ENABLE_BATTERY == 0) {
       show_message_box("Connecting to WiFi...", "...");
     }
@@ -162,28 +158,10 @@ void loop() {
     delay(5);
       if(!init_flag){
         // Initialize WiFi and MQTT connection
-        ha_begin();
       }
-      ha_loop();
       if(!init_flag){
         if(battery_present || ENABLE_BATTERY == 0)
           close_message_box();
-        // Initialize the active components to keep Home Assistant up to date
-        #if AC_CONTROL != 0
-          AC_CONTROL_INIT();
-        #endif
-        #if CLIMATE_CONTROL != 0
-          CLIMATE_CONTROL_INIT();
-        #endif
-        #if FAN != 0
-          FAN_INIT();
-        #endif
-        #if ALARM != 0
-          ALARM_INIT();
-        #endif
-        #if ROBOROCK != 0
-          ROBOROCK_INIT();
-        #endif
         init_flag=true;
       }
     unsigned long now = millis();
