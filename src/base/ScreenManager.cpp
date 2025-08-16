@@ -30,6 +30,7 @@ bool ScreenManager::switchTo(const std::string& name) {
 
     activeScreen_ = it->second;
     activeScreen_->onLoad();
+    lv_scr_load(activeScreen_->render());
     return true;
 }
 
