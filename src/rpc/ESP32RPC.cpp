@@ -50,6 +50,7 @@ JsonVariant ESP32RPC::call(const std::string &method, JsonVariant params, unsign
 
     String msg;
     serializeJson(doc, msg);
+    LV_LOG_USER("[ESP32RPC] published data=%s", msg.c_str());
     mqtt.publish(clientTopic().c_str(), msg.c_str());
 
     unsigned long start = millis();
