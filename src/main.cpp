@@ -15,6 +15,8 @@
 #include "fonts/font_styles.h"
 #include "battery_monitor.h"
 #include "screen_registrer.h"
+#include "secrets.h"
+#include "rpc/RPCSystem.hpp"
 
 // Touchscreen pins
 #define XPT2046_IRQ 36   // T_IRQ
@@ -34,6 +36,15 @@ int x, y, z;
 
 #define DRAW_BUF_SIZE (SCREEN_WIDTH * SCREEN_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
+RPCSystem rpc(
+    WIFI_SSID,
+    WIFI_PASSWORD,
+    MQTT_BROKER,
+    1883,
+    MQTT_USER,      // optional
+    MQTT_PASSWORD   // optional
+);
+
 
 // If logging is enabled, it will inform the user about what is happening in the library
 void log_print(lv_log_level_t level, const char * buf) {
@@ -137,8 +148,26 @@ void setup() {
 
   register_screens();
   ScreenManager::getInstance().switchTo("TestScreen");
+  if(!rpc.begin()){
+    show_message_box("Could not connect to RPC server", "Please check MQTT config");
+  }
 
+  LV_LOG_USER("Device UUID: %d", rpc.getRPC().getUUID());
 
+  rpc.getRPC().registerMethod("add", [](JsonVariant params) -> JsonVariant {
+    int a = params["a"] | 0;
+    int b = params["b"] | 0;
+
+    // Create a static DynamicJsonDocument to hold the result object
+    static DynamicJsonDocument doc(64); 
+    doc.clear(); // clear previous content
+
+    // Create the result object
+    doc["result"] = a+b;
+
+    return doc.as<JsonVariant>();
+});
+  
   // Function to draw the GUI (text, buttons and sliders)
     if(battery_present || ENABLE_BATTERY == 0) {
       show_message_box("Connecting to WiFi...", "...");
@@ -152,6 +181,7 @@ void setup() {
 unsigned long lastLVGLTick = 0;
 
 void loop() {
+    rpc.getRPC().loop();
     // Call lv_timer_handler often
     lv_timer_handler();  // required for LVGL to render and handle input
 
