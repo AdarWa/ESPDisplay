@@ -166,7 +166,13 @@ void setup() {
     doc["result"] = a+b;
 
     return doc.as<JsonVariant>();
-});
+  });
+  static DynamicJsonDocument doc(64);
+  doc.clear();
+  doc["a"] = 5;
+  doc["b"] = 10;
+  LV_LOG_USER("%d",rpc.getRPC().call("add", doc.as<JsonVariant>()).as<int>());
+
   
   // Function to draw the GUI (text, buttons and sliders)
     if(battery_present || ENABLE_BATTERY == 0) {
