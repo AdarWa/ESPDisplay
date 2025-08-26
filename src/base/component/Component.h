@@ -7,11 +7,11 @@
 #include <lvgl.h>
 
 class Component : public Entity {
-protected:
-    std::string uuid_;
-    std::unique_ptr<States> states_;
-
 public:
+    std::string uuid_;
+    std::string type;
+    std::map<std::string, std::string> params;
+    std::unique_ptr<States> states_;
     Component(const std::string& uuid);
     virtual ~Component() = default;
 

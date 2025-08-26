@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <lvgl.h>
+#include <ArduinoJson.h>
 
 class Screen : public Entity {
 protected:
@@ -32,6 +33,8 @@ public:
     void onLoad() override;
     void onUpdate() override;
     void onUnload() override;
+
+    void fromJson(JsonObject& obj);
 
     virtual lv_obj_t* render();
 };

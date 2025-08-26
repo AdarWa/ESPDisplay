@@ -4,7 +4,6 @@ ESP32RPC::ESP32RPC(PubSubClient &client, const std::string &uuid_file)
     : mqtt(client), uuid_file(uuid_file), uuid(-1) {}  // initialize uuid as invalid
 
 bool ESP32RPC::begin() {
-    spiffs_begin();
     LV_LOG_USER("[ESP32RPC] SPIFFS initialized");
 
     if (SPIFFS.exists(uuid_file.c_str())) {

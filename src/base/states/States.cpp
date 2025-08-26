@@ -8,7 +8,6 @@ void States::publish() {
     // Stub for publishing states
 }
 
-void States::onChange(const std::string& key, const std::string& value) {
-    states_[key] = value;
-    publish();
+void States::addCallback(Callback callback){
+    callbacks_.push_back(callback);
 }
