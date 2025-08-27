@@ -1,11 +1,13 @@
 #pragma once
 #include <map>
 #include <string>
+#include <functional>
+#include <vector>
 
 class States {
 public:
     using StateMap = std::map<std::string, std::string>;
-    using Callback = std::function<void>;
+    using Callback = std::function<void()>;
     using CallbackList = std::vector<Callback>;
 
 protected:
