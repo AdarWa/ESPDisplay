@@ -30,7 +30,7 @@
 #define ROBOROCK 1
 
 //MQTT
-#define MQTT_BROKER "192.168.1.32"
+#define MQTT_BROKER "10.49.67.76"
 #define MQTT_PORT 1883
 #define MQTT_CLIENT_ID "RemoteControl"
 #define MQTT_DEVICE_NAME "Display Remote Control"

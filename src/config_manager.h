@@ -2,6 +2,65 @@
 #include "base/Screen.h"
 #include "spiffs_handler.h"
 
+#define CONFIG_BUFFER_SIZE 16384 // I fucking hate buffers. Change this stupid shit if it causes problems.
+
+
+class Config {
+public:
+    std::vector<std::shared_ptr<Screen>> screens;
+
+    static Config parseConfig(const ArduinoJson::V742PB22::JsonVariant& config) {
+        Config cfg;
+
+        if (!config.is<JsonObject>()) return cfg;
+
+        auto obj = config.as<JsonObject>();
+        if (!obj.containsKey("screens") || !obj["screens"].is<JsonArray>()) return cfg;
+
+        auto screensArr = obj["screens"].as<JsonArray>();
+        for (auto s : screensArr) {
+            if (!s.is<JsonObject>()) continue;
+            auto scrObj = s.as<JsonObject>();
+
+            std::string name = scrObj["name"] | "unnamed";
+            std::string backScreen = scrObj["backScreen"] | scrObj["back_screen"] | "";
+
+            auto screen = std::make_shared<Screen>(name, backScreen);
+
+            // Components
+            if (scrObj.containsKey("components") && scrObj["components"].is<JsonArray>()) {
+                auto compsArr = scrObj["components"].as<JsonArray>();
+                for (auto c : compsArr) {
+                    if (!c.is<JsonObject>()) continue;
+                    auto compObj = c.as<JsonObject>();
+
+                    std::string uuid = compObj["uuid"] | compObj["comp_id"] | "";
+                    auto comp = std::make_shared<Component>(uuid);
+
+                    if (compObj.containsKey("type") && compObj["type"].is<const char*>()) {
+                        comp->type = compObj["type"].as<const char*>();
+                    }
+                    if (compObj.containsKey("params") && compObj["params"].is<JsonObject>()) {
+                        auto paramsObj = compObj["params"].as<JsonObject>();
+                        for (auto kv : paramsObj) {
+                            if (kv.value().is<const char*>())
+                                comp->params[kv.key().c_str()] = kv.value().as<const char*>();
+                        }
+                    }
+
+                    screen->addComponent(comp);
+                }
+            }
+
+            cfg.screens.push_back(screen);
+        }
+
+        return cfg;
+    }
+};
+
+
+
 class ConfigManager {
 private:
     ConfigManager() = default;
@@ -21,7 +80,7 @@ public:
     }
 
     bool load(const char* path = "/config.json") {
-        DynamicJsonDocument doc(8192);  // adjust capacity as needed
+        DynamicJsonDocument doc(CONFIG_BUFFER_SIZE);  // adjust capacity as needed
         if (!spiffs_file_exists(path)) {
             return false; // no config file yet
         }
@@ -37,7 +96,7 @@ public:
     bool save(const char* path = "/config.json") {
         if (!config_) return false;
 
-        DynamicJsonDocument doc(8192);
+        DynamicJsonDocument doc(CONFIG_BUFFER_SIZE);
         JsonObject root = doc.to<JsonObject>();
 
         // Serialize current config back to JSON
@@ -79,81 +138,5 @@ public:
 
     void setConfig(std::unique_ptr<Config> newConfig) {
         config_ = std::move(newConfig);
-    }
-};
-
-
-class Config {
-public:
-    std::vector<std::shared_ptr<Screen>> screens;
-
-    static Config parseConfig(JsonVariant& config) {
-        Config cfg;
-
-        if (!config.is<JsonObject>()) {
-            // Invalid config, return empty
-            return cfg;
-        }
-
-        JsonObject obj = config.as<JsonObject>();
-
-        if (!obj.containsKey("screens")) {
-            // No screens, return empty
-            return cfg;
-        }
-
-        JsonArray screensArr = obj["screens"].as<JsonArray>();
-        for (JsonVariant s : screensArr) {
-            if (!s.is<JsonObject>()) continue;
-            JsonObject scrObj = s.as<JsonObject>();
-
-            std::string name = scrObj["name"] | "unnamed";
-            std::string backScreen = scrObj["backScreen"] | "";
-
-            auto screen = std::make_shared<Screen>(name, backScreen);
-
-            // Parse components
-            if (scrObj.containsKey("components")) {
-                JsonArray compsArr = scrObj["components"].as<JsonArray>();
-                for (JsonVariant c : compsArr) {
-                    if (!c.is<JsonObject>()) continue;
-                    JsonObject compObj = c.as<JsonObject>();
-
-                    std::string uuid = compObj["uuid"] | "";
-                    auto comp = std::make_shared<Component>(uuid);
-
-                    // TODO: populate type and params
-                    if (compObj.containsKey("type")) {
-                        comp->type = compObj["type"].as<std::string>();
-                    }
-                    if (compObj.containsKey("params")) {
-                        JsonObject paramsObj = compObj["params"].as<JsonObject>();
-                        for (auto kv : paramsObj) {
-                            comp->params[kv.key().c_str()] = kv.value().as<std::string>();
-                        }
-                    }
-
-                    screen->addComponent(comp);
-                }
-            }
-
-            // Parse modules
-            if (scrObj.containsKey("modules")) {
-                JsonArray modsArr = scrObj["modules"].as<JsonArray>();
-                for (JsonVariant m : modsArr) {
-                    if (!m.is<JsonObject>()) continue;
-                    JsonObject modObj = m.as<JsonObject>();
-
-                    std::string modName = modObj["name"] | "";
-                    auto mod = std::make_shared<Module>(modName);
-
-                    screen->addModule(mod);
-                }
-            }
-
-            cfg.screens.push_back(screen);
-        }
-
-        return cfg;
     }
 };

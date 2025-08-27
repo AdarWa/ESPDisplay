@@ -17,6 +17,7 @@
 #include "screen_registrer.h"
 #include "secrets.h"
 #include "rpc/RPCSystem.hpp"
+#include "rpc/rpc_handlers.hpp"
 
 // Touchscreen pins
 #define XPT2046_IRQ 36   // T_IRQ
@@ -110,6 +111,8 @@ void setup() {
 
   pinMode(TOUCH_WAKEUP_PIN, INPUT);
   spiffs_begin();
+  spiffs_remove_file("/uuid.txt");
+
   
   // Start LVGL
   lv_init();
@@ -154,30 +157,8 @@ void setup() {
 
   LV_LOG_USER("Device UUID: %d", rpc.getRPC().getUUID());
 
-  rpc.getRPC().registerMethod("add", [](JsonVariant params) -> JsonVariant {
-    int a = params["a"] | 0;
-    int b = params["b"] | 0;
-
-    // Create a static DynamicJsonDocument to hold the result object
-    static DynamicJsonDocument doc(64); 
-    doc.clear(); // clear previous content
-
-    // Create the result object
-    doc["result"] = a+b;
-
-    return doc.as<JsonVariant>();
-  });
-  static DynamicJsonDocument doc(64);
-  doc.clear();
-  doc["a"] = 5;
-  doc["b"] = 10;
-  LV_LOG_USER("%d",rpc.getRPC().call("add", doc.as<JsonVariant>()).as<int>());
+  init_rpc_handlers(rpc.getRPC());
   
-  
-  // Function to draw the GUI (text, buttons and sliders)
-    if(battery_present || ENABLE_BATTERY == 0) {
-      show_message_box("Connecting to WiFi...", "...");
-    }
     init_millis = millis();
     last_touch_time = millis();
 
