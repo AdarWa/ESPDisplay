@@ -27,6 +27,8 @@
         "mutex": "cpp",
         "numeric": "cpp",
         "thread": "cpp",
-        "type_traits": "cpp"
+        "type_traits": "cpp",
+        "limits": "cpp",
+        "typeinfo": "cpp"
     }
 }

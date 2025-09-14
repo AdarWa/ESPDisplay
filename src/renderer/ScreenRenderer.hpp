@@ -5,7 +5,11 @@
 #include <vector>
 #include <functional>
 #include <memory>
-#include "components/Components.hpp"
+// Avoid including component implementations here to prevent circular dependencies.
+// Components should include this header to access interfaces and context types.
+
+// Forward declaration so it can be used in pointers below
+class ScreenRenderer;
 
 struct CompCtx {
     String comp_id;

@@ -1,4 +1,5 @@
 #include "ScreenRenderer.hpp"
+#include "components/Components.hpp" // register concrete components
 #include <cstring>
 #include <cstdlib>
 
