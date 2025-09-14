@@ -1,8 +1,59 @@
 #pragma once
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
+#include <FS.h>
 #include <SPIFFS.h>
-#include "ESP32RPC.hpp"
+#include <functional>
+#include <map>
+
+class ESP32RPC {
+public:
+    using Callback = std::function<JsonVariant(JsonVariantConst)>;
+
+    ESP32RPC(PubSubClient &client, const String &uuid_file = "/uuid.txt");
+
+    bool begin();
+    void loop();
+
+    int getUUID() const { return uuid; }
+
+    JsonDocument call(const String &method, JsonVariantConst params, unsigned long timeout = 5000);
+    void registerMethod(const String &name, Callback cb);
+
+private:
+    PubSubClient &mqtt;
+    int uuid = -1;
+    String uuid_file;
+    std::map<String, Callback> methods;
+
+    struct Pending {
+      bool done = false;
+      JsonDocument doc; // holds either result or error form
+      Pending(): doc() {}
+    };
+    std::map<String, Pending*> pending;
+
+    // topics
+    String topicServer() const; // server publishes requests here, device must subscribe
+    String topicClient() const; // server listens here, device publishes requests and responses
+
+    // handshake
+    bool requestUUID();
+    bool loadUUID();
+    bool saveUUID();
+
+    // message handling
+    static void mqttThunk(char* topic, byte* payload, unsigned int length);
+    void onMQTT(char* topic, byte* payload, unsigned int length);
+
+    // JSON-RPC helpers
+    String newId();
+    void sendJSON(const String &topic, JsonDocument const &doc);
+    void handleIncomingJSON(const String &topic, JsonDocument const &doc);
+    void handleIncomingRequest(JsonDocument const &doc);
+    void handleIncomingResponse(JsonDocument const &doc);
+};
 
 class RPCSystem {
 public:
@@ -13,20 +64,9 @@ public:
         int mqtt_port = 1883,
         const char* mqtt_user = nullptr,
         const char* mqtt_pass = nullptr
-    )
-        : ssid(ssid), password(password),
-          mqtt_server(mqtt_server), mqtt_port(mqtt_port),
-          mqtt_user(mqtt_user), mqtt_pass(mqtt_pass),
-          mqtt(client), rpc(mqtt) {}
+    );
 
-    bool begin() {
-        if (!initSPIFFS()) return false;
-        if (!connectWiFi()) return false;
-        if (!connectMQTT()) return false;
-        if (!rpc.begin()) return false;
-        return true;
-    }
-
+    bool begin();
     ESP32RPC& getRPC() { return rpc; }
     PubSubClient& getMQTT() { return mqtt; }
 
@@ -42,54 +82,7 @@ private:
     PubSubClient mqtt;
     ESP32RPC rpc;
 
-    bool initSPIFFS() {
-        if (!SPIFFS.begin(true)) {
-            Serial.println("Failed to mount SPIFFS");
-            return false;
-        }
-        return true;
-    }
-
-    bool connectWiFi() {
-        Serial.print("Connecting to WiFi");
-        WiFi.begin(ssid, password);
-        unsigned long start = millis();
-        while (WiFi.status() != WL_CONNECTED) {
-            delay(500);
-            Serial.print(".");
-            if (millis() - start > 20000) { // 20 sec timeout
-                Serial.println("WiFi connection failed");
-                return false;
-            }
-        }
-        Serial.println();
-        Serial.print("Connected to WiFi, IP: ");
-        Serial.println(WiFi.localIP());
-        return true;
-    }
-
-    bool connectMQTT() {
-        mqtt.setServer(mqtt_server, mqtt_port);
-        Serial.print("Connecting to MQTT");
-        unsigned long start = millis();
-        while (!mqtt.connected()) {
-            bool ok;
-            if (mqtt_user && mqtt_pass) {
-                ok = mqtt.connect("esp32client", mqtt_user, mqtt_pass);
-            } else {
-                ok = mqtt.connect("esp32client");
-            }
-            if (ok) {
-                Serial.println("MQTT connected");
-                break;
-            }
-            delay(500);
-            Serial.print(".");
-            if (millis() - start > 10000) { // 10 sec timeout
-                Serial.println("MQTT connection failed");
-                return false;
-            }
-        }
-        return true;
-    }
+    bool initSPIFFS();
+    bool connectWiFi();
+    bool connectMQTT();
 };

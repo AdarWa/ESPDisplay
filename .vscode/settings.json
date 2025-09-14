@@ -1,3 +1,32 @@
 {
-    "cmake.sourceDirectory": "/home/adarw/Documents/PlatformIO/Projects/250514-164123-esp32dev/lib/TFT_eSPI"
+    "cmake.sourceDirectory": "/home/adarw/Documents/PlatformIO/Projects/250514-164123-esp32dev/lib/TFT_eSPI",
+    "files.associations": {
+        "string": "cpp",
+        "cstring": "cpp",
+        "map": "cpp",
+        "list": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "vector": "cpp",
+        "string_view": "cpp",
+        "random": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "memory": "cpp",
+        "initializer_list": "cpp",
+        "fstream": "cpp",
+        "algorithm": "cpp",
+        "iomanip": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp",
+        "sstream": "cpp",
+        "streambuf": "cpp",
+        "functional": "cpp",
+        "exception": "cpp",
+        "optional": "cpp",
+        "mutex": "cpp",
+        "numeric": "cpp",
+        "thread": "cpp",
+        "type_traits": "cpp"
+    }
 }
